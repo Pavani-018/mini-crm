@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mini CRM Dashboard</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, Arial;
+    }
+
+    body {
+      margin: 0;
+      background: #eaf4ff;
+      color: #1f2a44;
+    }
+
+    .topbar {
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      color: white;
+      padding: 18px 25px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      width: 85%;
+      margin: 30px auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(59,130,246,0.15);
+      border: 1px solid #dbeafe;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      outline: none;
+      background: #f8fbff;
+    }
+
+    button {
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 5px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .delete:hover {
+      background: #dc2626;
+    }
+
+    .lead {
+      background: #f0f7ff;
+      border-left: 6px solid #3b82f6;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stats {
+      grid-column: span 2;
+      text-align: center;
+    }
+
+    .stats h1 {
+      font-size: 40px;
+      color: #3b82f6;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">📊 Mini CRM Dashboard</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="card stats">
+    <h2>📊 Total Leads</h2>
+    <h1 id="totalLeads">0</h1>
+  </div>
+
+  <!-- ADD LEAD -->
+  <div class="card">
+    <h2>➕ Add Lead</h2>
+
+    <form id="leadForm">
+      <input type="text" id="name" placeholder="Name" required>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="text" id="phone" placeholder="Phone" required>
+      <input type="text" id="message" placeholder="Message" required>
+
+      <select id="status">
+        <option value="New">New</option>
+        <option value="Contacted">Contacted</option>
+        <option value="Converted">Converted</option>
+        <option value="Lost">Lost</option>
+      </select>
+
+      <button type="submit">Save Lead</button>
+    </form>
+  </div>
+
+  <!-- LEADS -->
+  <div class="card">
+    <h2>📋 Leads</h2>
+    <div id="leads"></div>
+  </div>
+
+</div>
+
+<script>
+  const API = "http://localhost:5000";
+
+  // ADD LEAD
+  document.getElementById("leadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data = {
+      name: document.getElementById("name").value,
+      email: document.getElementById("email").value,
+      phone: document.getElementById("phone").value,
+      message: document.getElementById("message").value,
+      status: document.getElementById("status").value
+    };
+
+    await fetch(API + "/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    document.getElementById("leadForm").reset();
+    loadLeads();
+    loadStats();
+  });
+
+  // LOAD LEADS
+  async function loadLeads() {
+    const res = await fetch(API + "/leads");
+    const data = await res.json();
+
+    let html = "";
+
+    data.forEach(l => {
+      html += `
+        <div class="lead">
+          <div>
+            <b>${l.name}</b><br>
+            ${l.email} | ${l.phone}<br>
+            ${l.message}<br>
+            <strong>Status: ${l.status}</strong>
+          </div>
+
+          <div>
+            <button onclick="editLead(${l.id}, '${l.name}', '${l.email}', '${l.phone}', '${l.message}', '${l.status}')">Edit</button>
+            <button class="delete" onclick="deleteLead(${l.id})">X</button>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("leads").innerHTML = html;
+  }
+
+  // DELETE
+  async function deleteLead(id) {
+    await fetch(API + "/leads/" + id, { method: "DELETE" });
+
+    loadLeads();
+    loadStats();
+  }
+
+  // EDIT
+  async function editLead(id, name, email, phone, message, status) {
+    const newName = prompt("Name", name);
+    const newEmail = prompt("Email", email);
+    const newPhone = prompt("Phone", phone);
+    const newMessage = prompt("Message", message);
+    const newStatus = prompt("Status (New, Contacted, Converted, Lost)", status);
+
+    await fetch(API + "/leads/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        email: newEmail,
+        phone: newPhone,
+        message: newMessage,
+        status: newStatus
+      })
+    });
+
+    loadLeads();
+    loadStats();
+  }
+
+  // STATS
+  async function loadStats() {
+    const res = await fetch(API + "/leads");
+    const data = await res.json();
+
+    document.getElementById("totalLeads").innerText = data.length;
+  }
+
+  // INIT
+  loadLeads();
+  loadStats();
+</script>
+
+</body>
+</html>
