@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
@@ -25,8 +26,9 @@ db.connect((err) => {
   }
 });
 
+// Serve Frontend
 app.get("/", (req, res) => {
-  res.send("Mini CRM Backend Running 🚀");
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
 app.get("/test", (req, res) => {
@@ -69,11 +71,7 @@ app.post("/leads", (req, res) => {
   );
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Delete lead
 app.delete("/leads/:id", (req, res) => {
   const id = req.params.id;
 
@@ -86,6 +84,8 @@ app.delete("/leads/:id", (req, res) => {
     res.json({ message: "Lead deleted successfully" });
   });
 });
+
+// Update lead
 app.put("/leads/:id", (req, res) => {
   const id = req.params.id;
   const { name, email, phone, message } = req.body;
@@ -102,4 +102,10 @@ app.put("/leads/:id", (req, res) => {
       res.json({ message: "Lead updated successfully" });
     }
   );
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
